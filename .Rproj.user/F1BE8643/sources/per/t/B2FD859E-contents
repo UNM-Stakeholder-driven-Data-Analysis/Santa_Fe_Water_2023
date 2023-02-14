@@ -1,0 +1,16 @@
+---
+title: "Exploratory Data Analysis"
+author: "Missy Bacigalupa"
+format: html
+editor: visual
+---
+
+This code explores water meter use data from Santa Fe Water in preparation for statistical analysis. 
+
+```{r Packages}
+```
+
+```{r Data import}
+```
+
+```{r Data visualization}
