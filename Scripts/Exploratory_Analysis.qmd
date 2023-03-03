@@ -7,11 +7,99 @@ editor: visual
 
 This code explores water meter use data from Santa Fe Water in preparation for statistical analysis.
 
-```{r Packages}
+```{r Packages,include=FALSE}
+library(tidyverse)
+library(googlesheets4)
+library(knitr)
+library(MASS)
 ```
 
-```{r Data import}
+```{r Data import, include=FALSE}
+#dat_water <- read.csv(file="")
+#dat_water <- googlesheets4::read_sheet(ss="")
 ```
 
-```{r Data visualization}
+```{r Data subset and classes}
+dat_water <- dat_water %>%
+  # Select variables of interest only
+  dplyr::select(property_name, 
+                property_type,
+                budget_type,
+                budget_amt,
+                time, 
+                water_usage,
+                ) %>%
+  # Mutate columns to desired class types
+  dplyr::mutate(property_name = as.factor(property_name),
+                property_type = as.factor(property_type),
+                budget_type = as.factor(budget_type),
+                budget_amt = as.numeric(budget_amt),
+                time = as.Date(time, format="%m/%d/%y %H:%M", tz="MST"),
+                water_usage = as.numeric(water_usage)
+                )
 ```
+
+# Data Exploration Questions
+## Data Types
+```{r Data Types}
+# Extract variable classes
+data.frame(Variable = names(dat_water),
+           Desc. = c("Name of Property",
+                     "Type of Property",
+                     "Water budget type selected in original building proposal",
+                     "Proposed water budget (acre-feet)",
+                     "Date of meter reading",
+                     "Metered water use (gallons)"
+                     ),
+           Class = sapply(dat_water, typeof),
+           Subclass = c("Nominal",
+                        "Nominal",
+                        "Nominal",
+                        "Continuous (ratio)",
+                        "None",
+                        "Continuous (ratio)"),
+           row.names = NULL) %>% 
+  knitr::kable(caption="SF Water Data Codebook") # Write table giving classes (caption gives title, format gives a layout type)
+```
+
+Numerical: Zero-inflated, one-inflated, or multi-modal?
+
+## Data Distributions
+
+```{r Normality tests and Box-Cox}
+shapiro.test(variable)
+
+bc_water <- MASS::boxcox(dat_water$variable~1)
+(lambda <- bc$x[which.max(bc$y)]) # gives lambda, compare to Box-Cox transformation table
+
+transformed_variable <- transformation(variable)
+
+shapiro.test(transformed_variable)
+
+dat_water$transformed_variable <- transformed_variable
+```
+
+(Answer for each variable grouping)
+
+## Data Structures and Relationships
+
+### Nestedness and Autocorrelation
+Nested in space/time? How?
+
+We can expect temporal autocorrelation in the amount of water used by different properties, since water use follows daily and monthly patterns. We might want to compare yearly averages since alternative budgets are calculated on the year scale.
+
+```{r Yearly averages}
+# Collapse timestamp to year
+dat_water$year <- format(dat_water$time,"%Y")
+```
+
+If you have multiple candidate predictor variables, are any of them correlated with each other (absolute value of correlation coefficient > 0.4)?
+
+Can you run simple linear models on subsets of your data (minimal nestedness) such that the models meet all assumptions?
+Which assumptions are the hardest to meet? How do you have to subset your data to achieve this? What does this tell you about your data?
+Can you transform, normalize, or scale your data to meet assumptions?
+Note if these actions change the data type
+
+## Missing Data
+How many NAs/missing observations do you have and how are they distributed throughout your data?
+
